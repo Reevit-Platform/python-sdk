@@ -22,7 +22,7 @@ class Reevit:
             "User-Agent": "@reevit/python",
             "Authorization": f"Bearer {api_key}",
             "X-Reevit-Client": "@reevit/python",
-            "X-Reevit-Client-Version": "0.1.0",
+            "X-Reevit-Client-Version": "0.3.2",
         })
         self.base_url = base_url.rstrip("/")
 
