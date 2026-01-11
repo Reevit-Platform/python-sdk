@@ -9,7 +9,7 @@ The official Python SDK for [Reevit](https://reevit.io) — a unified payment or
 ## Installation
 
 ```bash
-pip install reevit
+pip install reevit==0.5.0
 ```
 
 ## Quick Start
