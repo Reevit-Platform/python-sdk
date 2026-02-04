@@ -4,8 +4,9 @@ class PaymentsService:
     def __init__(self, client):
         self.client = client
 
-    def create_intent(self, data: Dict[str, Any]) -> Dict[str, Any]:
-        return self.client.request("POST", "/v1/payments/intents", json=data)
+    def create_intent(self, data: Dict[str, Any], idempotency_key: Optional[str] = None) -> Dict[str, Any]:
+        headers = {"Idempotency-Key": idempotency_key} if idempotency_key else None
+        return self.client.request("POST", "/v1/payments/intents", json=data, headers=headers)
 
     def list(self, limit: int = 50, offset: int = 0) -> List[Dict[str, Any]]:
         params = {"limit": limit, "offset": offset}

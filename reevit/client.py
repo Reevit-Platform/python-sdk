@@ -35,6 +35,11 @@ class Reevit:
         url = f"{self.base_url}{path}"
         if 'timeout' not in kwargs:
             kwargs['timeout'] = DEFAULT_TIMEOUT
+        headers = kwargs.pop('headers', None)
+        if headers:
+            merged_headers = dict(self.session.headers)
+            merged_headers.update(headers)
+            kwargs['headers'] = merged_headers
         response = self.session.request(method, url, **kwargs)
         try:
             response.raise_for_status()

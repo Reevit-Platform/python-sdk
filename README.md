@@ -30,7 +30,7 @@ try:
         "metadata": {
             "order_id": "12345"
         }
-    })
+    }, idempotency_key="order_12345")
     print(f"Payment created: {payment['id']}")
 except Exception as e:
     print(f"Error: {e}")
@@ -38,6 +38,22 @@ except Exception as e:
 # List payments
 payments = client.payments.list()
 print(payments)
+```
+
+## Idempotency
+
+Pass `idempotency_key` to safely retry intent creation without duplicates.
+
+```python
+payment = client.payments.create_intent(
+    {
+        "amount": 5000,
+        "currency": "GHS",
+        "method": "momo",
+        "country": "GH",
+    },
+    idempotency_key="order_12345",
+)
 ```
 
 ## Features
