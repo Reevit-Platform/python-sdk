@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="reevit",
-    version="0.5.0",
+    version="0.7.0",
     description="Reevit Python SDK",
     author="Reevit",
     packages=find_packages(),

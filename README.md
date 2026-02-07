@@ -9,7 +9,7 @@ The official Python SDK for [Reevit](https://reevit.io) — a unified payment or
 ## Installation
 
 ```bash
-pip install reevit==0.5.0
+pip install reevit==0.7.0
 ```
 
 ## Quick Start
@@ -410,6 +410,11 @@ async def webhook(request: Request):
 ---
 
 ## Release Notes
+
+### v0.7.0
+
+- Version alignment across all Reevit SDKs
+- Updated documentation and webhook examples
 
 ### v0.5.0
 
