@@ -1,1 +1,1 @@
-from .client import Reevit
+from .client import Reevit, ReevitAPIError

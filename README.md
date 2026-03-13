@@ -17,7 +17,7 @@ pip install reevit==0.7.0
 ```python
 from reevit import Reevit
 
-client = Reevit(api_key="pfk_live_xxx")
+client = Reevit(api_key="pfk_live_xxx", org_id="org_123")
 
 # Create a payment
 try:
@@ -58,10 +58,13 @@ payment = client.payments.create_intent(
 
 ## Features
 
-- **Payments**: Create intents, refund, list
-- **Connections**: Manage PSP integrations
-- **Subscriptions**: Manage recurring billing
+- **Payments**: Create intents, update intents, confirm, confirm intent, cancel, retry, refund, stats
+- **Connections**: Manage PSP integrations, validation, labels, status, audit
+- **Subscriptions**: Manage recurring billing lifecycle
 - **Fraud**: Configure fraud rules
+- **Customers / Payment Links / Webhooks / Routing Rules / Invoices**: Additional backend services
+
+`org_id` is supported directly on the client. Omitting it for authenticated requests still works for backward compatibility, but that mode is deprecated.
 
 ---
 
