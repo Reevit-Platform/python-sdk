@@ -9,7 +9,7 @@ The official Python SDK for [Reevit](https://reevit.io) — a unified payment or
 ## Installation
 
 ```bash
-pip install reevit==0.7.0
+pip install reevit==0.9.0
 ```
 
 ## Quick Start
@@ -40,6 +40,22 @@ payments = client.payments.list()
 print(payments)
 ```
 
+## Server-created checkout sessions
+
+Create checkout sessions on your server and pass `session["session_secret"]` to the browser SDK.
+
+```python
+session = client.checkout_sessions.create(
+    {
+        "amount": 5000,
+        "currency": "GHS",
+        "method": "mobile_money",
+        "country": "GH",
+    },
+    idempotency_key="order_12345",
+)
+```
+
 ## Idempotency
 
 Pass `idempotency_key` to safely retry intent creation without duplicates.
@@ -62,7 +78,7 @@ payment = client.payments.create_intent(
 - **Connections**: Manage PSP integrations, validation, labels, status, audit
 - **Subscriptions**: Manage recurring billing lifecycle
 - **Fraud**: Configure fraud rules
-- **Customers / Payment Links / Webhooks / Routing Rules / Invoices**: Additional backend services
+- **Customers / Payment Links / Checkout Sessions / Webhooks / Routing Rules / Invoices**: Additional backend services
 
 `org_id` is supported directly on the client. Omitting it for authenticated requests still works for backward compatibility, but that mode is deprecated.
 
@@ -414,13 +430,11 @@ async def webhook(request: Request):
 
 ## Release Notes
 
-### v0.7.0
+### v0.9.0
 
+- Added server-created checkout sessions
 - Version alignment across all Reevit SDKs
 - Updated documentation and webhook examples
-
-### v0.5.0
-
 - Added support for Apple Pay and Google Pay
 - Updated supported PSPs and payment methods documentation
 

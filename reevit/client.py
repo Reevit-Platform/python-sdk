@@ -7,6 +7,7 @@ from .services.subscriptions import SubscriptionsService
 from .services.fraud import FraudService
 from .services.customers import CustomersService
 from .services.payment_links import PaymentLinksService
+from .services.checkout_sessions import CheckoutSessionsService
 from .services.webhooks import WebhooksService
 from .services.routing_rules import RoutingRulesService
 from .services.invoices import InvoicesService
@@ -34,7 +35,7 @@ class Reevit:
             "User-Agent": "@reevit/python",
             "X-Reevit-Key": api_key,
             "X-Reevit-Client": "@reevit/python",
-            "X-Reevit-Client-Version": "0.7.1",
+            "X-Reevit-Client-Version": "0.9.0",
         })
         if org_id:
             self.session.headers["X-Org-Id"] = org_id
@@ -48,6 +49,7 @@ class Reevit:
         self.fraud = FraudService(self)
         self.customers = CustomersService(self)
         self.payment_links = PaymentLinksService(self)
+        self.checkout_sessions = CheckoutSessionsService(self)
         self.webhooks = WebhooksService(self)
         self.routing_rules = RoutingRulesService(self)
         self.invoices = InvoicesService(self)
