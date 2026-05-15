@@ -42,7 +42,7 @@ print(payments)
 
 ## Server-created checkout sessions
 
-Create checkout sessions on your server and pass `session["session_secret"]` to the browser SDK.
+Create checkout sessions on your server, then pass `session["session_secret"]` to a browser SDK — [`@reevit/react`](https://www.npmjs.com/package/@reevit/react), [`@reevit/vue`](https://www.npmjs.com/package/@reevit/vue), or [`@reevit/svelte`](https://www.npmjs.com/package/@reevit/svelte) — to render the checkout UI.
 
 ```python
 session = client.checkout_sessions.create(
