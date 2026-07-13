@@ -9,6 +9,9 @@ jobs:
   publish:
     name: Publish
     runs-on: blacksmith-4vcpu-ubuntu-2404
+    permissions:
+      id-token: write   # mint the OIDC token PyPI trusts; no API token needed
+      contents: read
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -21,7 +24,7 @@ jobs:
       - name: Install build tools
         run: |
           python -m pip install --upgrade pip
-          pip install build twine pip-audit
+          pip install build pip-audit
 
       - name: Report dependency audit
         run: pip-audit || true
@@ -58,7 +61,4 @@ jobs:
           python -c "import reevit; print('Package imports successfully')"
 
       - name: Publish to PyPI
-        run: twine upload dist/*
-        env:
-          TWINE_USERNAME: __token__
-          TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
+        uses: pypa/gh-action-pypi-publish@release/v1
