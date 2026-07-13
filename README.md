@@ -9,7 +9,7 @@ The official Python SDK for [Reevit](https://reevit.io) — a unified payment or
 ## Installation
 
 ```bash
-pip install reevit==0.9.0
+pip install reevit==0.9.1
 ```
 
 ## Quick Start
@@ -110,14 +110,15 @@ There are **two types of webhooks** in Reevit:
 
 ### Flask Webhook Handler
 
+The SDK ships a constant-time verifier — `verify_webhook_signature(payload, signature, secret)` — so you do not have to reimplement HMAC. Pass the **raw** request body (not parsed-and-reserialized JSON), the `X-Reevit-Signature` header, and your signing secret.
+
 ```python
-import hmac
-import hashlib
 import os
 import logging
 from dataclasses import dataclass
 from typing import Optional, Dict, Any
 from flask import Flask, request, jsonify
+from reevit import verify_webhook_signature
 
 app = Flask(__name__)
 logging.basicConfig(level=logging.INFO)
@@ -144,28 +145,14 @@ class SubscriptionData:
     interval: str
     next_renewal_at: Optional[str] = None
 
-def verify_signature(payload: bytes, signature: str, secret: str) -> bool:
-    """Verify the webhook signature using HMAC-SHA256."""
-    if not signature.startswith('sha256='):
-        return False
-    
-    expected = hmac.new(
-        secret.encode('utf-8'),
-        payload,
-        hashlib.sha256
-    ).hexdigest()
-    
-    received = signature[7:]  # Remove "sha256=" prefix
-    return hmac.compare_digest(received, expected)
-
 @app.route('/webhooks/reevit', methods=['POST'])
 def webhook():
-    payload = request.get_data()
+    payload = request.get_data()  # raw bytes — do not re-serialize
     signature = request.headers.get('X-Reevit-Signature', '')
     secret = os.environ.get('REEVIT_WEBHOOK_SECRET', '')
-    
+
     # Verify signature (required in production)
-    if secret and not verify_signature(payload, signature, secret):
+    if not verify_webhook_signature(payload, signature, secret):
         logger.warning('[Webhook] Invalid signature')
         return jsonify({'error': 'Invalid signature'}), 401
     
@@ -270,38 +257,24 @@ if __name__ == '__main__':
 
 ```python
 # views.py
-import hmac
-import hashlib
 import json
 import os
 import logging
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
+from reevit import verify_webhook_signature
 
 logger = logging.getLogger(__name__)
-
-def verify_signature(payload: bytes, signature: str, secret: str) -> bool:
-    if not signature.startswith('sha256='):
-        return False
-    
-    expected = hmac.new(
-        secret.encode('utf-8'),
-        payload,
-        hashlib.sha256
-    ).hexdigest()
-    
-    received = signature[7:]
-    return hmac.compare_digest(received, expected)
 
 @csrf_exempt
 @require_POST
 def reevit_webhook(request):
-    payload = request.body
+    payload = request.body  # raw bytes — do not re-serialize
     signature = request.headers.get('X-Reevit-Signature', '')
     secret = os.environ.get('REEVIT_WEBHOOK_SECRET', '')
     
-    if secret and not verify_signature(payload, signature, secret):
+    if not verify_webhook_signature(payload, signature, secret):
         return JsonResponse({'error': 'Invalid signature'}, status=401)
     
     event = json.loads(payload)
@@ -336,10 +309,9 @@ def reevit_webhook(request):
 from fastapi import FastAPI, Request, HTTPException
 from pydantic import BaseModel
 from typing import Optional, Dict
-import hmac
-import hashlib
 import os
 import logging
+from reevit import verify_webhook_signature
 
 app = FastAPI()
 logger = logging.getLogger(__name__)
@@ -363,26 +335,13 @@ class SubscriptionData(BaseModel):
     interval: str
     next_renewal_at: Optional[str] = None
 
-def verify_signature(payload: bytes, signature: str, secret: str) -> bool:
-    if not signature.startswith('sha256='):
-        return False
-    
-    expected = hmac.new(
-        secret.encode('utf-8'),
-        payload,
-        hashlib.sha256
-    ).hexdigest()
-    
-    received = signature[7:]
-    return hmac.compare_digest(received, expected)
-
 @app.post('/webhooks/reevit')
 async def webhook(request: Request):
-    payload = await request.body()
+    payload = await request.body()  # raw bytes — do not re-serialize
     signature = request.headers.get('X-Reevit-Signature', '')
     secret = os.environ.get('REEVIT_WEBHOOK_SECRET', '')
     
-    if secret and not verify_signature(payload, signature, secret):
+    if not verify_webhook_signature(payload, signature, secret):
         raise HTTPException(status_code=401, detail='Invalid signature')
     
     event = await request.json()
@@ -429,6 +388,11 @@ async def webhook(request: Request):
 ---
 
 ## Release Notes
+
+### v0.9.1
+
+- Added `verify_webhook_signature` / `sign_webhook_payload` helpers (constant-time HMAC-SHA256 verification of the `X-Reevit-Signature` header)
+- Version is now sourced from `reevit._version` and sent as the `X-Reevit-Client-Version` header
 
 ### v0.9.0
 

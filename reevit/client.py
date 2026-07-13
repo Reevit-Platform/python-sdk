@@ -1,6 +1,7 @@
 import requests
 import warnings
 from typing import Optional, Dict, Any
+from ._version import __version__
 from .services.payments import PaymentsService
 from .services.connections import ConnectionsService
 from .services.subscriptions import SubscriptionsService
@@ -35,7 +36,7 @@ class Reevit:
             "User-Agent": "@reevit/python",
             "X-Reevit-Key": api_key,
             "X-Reevit-Client": "@reevit/python",
-            "X-Reevit-Client-Version": "0.9.0",
+            "X-Reevit-Client-Version": __version__,
         })
         if org_id:
             self.session.headers["X-Org-Id"] = org_id
