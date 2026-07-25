@@ -8,7 +8,7 @@ on:
 jobs:
   publish:
     name: Publish
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     permissions:
       id-token: write   # mint the OIDC token PyPI trusts; no API token needed
       contents: read
