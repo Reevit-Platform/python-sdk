@@ -12,6 +12,7 @@ from .services.checkout_sessions import CheckoutSessionsService
 from .services.webhooks import WebhooksService
 from .services.routing_rules import RoutingRulesService
 from .services.invoices import InvoicesService
+from .services.payouts import PayoutsService
 
 API_BASE_URL_PRODUCTION = 'https://api.reevit.io'
 DEFAULT_TIMEOUT = 30
@@ -54,6 +55,7 @@ class Reevit:
         self.webhooks = WebhooksService(self)
         self.routing_rules = RoutingRulesService(self)
         self.invoices = InvoicesService(self)
+        self.payouts = PayoutsService(self)
 
     def request(self, method: str, path: str, **kwargs) -> Any:
         if not path.startswith("/v1/pay/") and not self.org_id:
