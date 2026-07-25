@@ -82,6 +82,13 @@ payment = client.payments.create_intent(
 
 `org_id` is supported directly on the client. Omitting it for authenticated requests still works for backward compatibility, but that mode is deprecated.
 
+To fetch every connected PSP rather than one page:
+
+```python
+connections = client.connections.list_all(mode="live", status="active")
+page = client.connections.list_page(limit=50, offset=0)
+```
+
 ---
 
 ## Webhook Verification
