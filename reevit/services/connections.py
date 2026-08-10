@@ -1,6 +1,9 @@
 from typing import List, Dict, Any, Optional
 from urllib.parse import quote
 
+from reevit.services._list import extract_list as _extract_list
+
+
 class ConnectionsService:
     def __init__(self, client):
         self.client = client
@@ -24,8 +27,14 @@ class ConnectionsService:
                 },
             }
         if isinstance(response, dict):
-            connections = response.get("connections")
-            if not isinstance(connections, list):
+            connections = _extract_list(response, "connections")
+            data = response.get("data")
+            has_shape = (
+                isinstance(response.get("connections"), list)
+                or isinstance(data, list)
+                or (isinstance(data, dict) and isinstance(data.get("connections"), list))
+            )
+            if not has_shape:
                 raise ValueError("unexpected connections response: missing connections array")
             pagination = response.get("pagination")
             if not isinstance(pagination, dict):
@@ -82,9 +91,7 @@ class ConnectionsService:
 
     def list_audit(self, connection_id: str, **params: Any) -> List[Dict[str, Any]]:
         response = self.client.request("GET", f"/v1/connections/{quote(connection_id, safe='')}/audit", params=params)
-        if isinstance(response, dict):
-            return response.get("audit", [])
-        return response
+        return _extract_list(response, "audit")
 
     def list_labels(self) -> List[Dict[str, Any]]:
         response = self.client.request("GET", "/v1/connections/labels")
