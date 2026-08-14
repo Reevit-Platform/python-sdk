@@ -1,5 +1,8 @@
 from typing import List, Dict, Any, Optional
 
+from reevit.services._list import extract_list as _extract_list
+
+
 class SubscriptionsService:
     def __init__(self, client):
         self.client = client
@@ -9,7 +12,7 @@ class SubscriptionsService:
         return self.client.request("POST", "/v1/subscriptions", json=data, headers=headers)
 
     def list(self, **params: Any) -> List[Dict[str, Any]]:
-        return self.client.request("GET", "/v1/subscriptions", params=params)
+        return _extract_list(self.client.request("GET", "/v1/subscriptions", params=params), "subscriptions")
 
     def get(self, subscription_id: str) -> Dict[str, Any]:
         return self.client.request("GET", f"/v1/subscriptions/{subscription_id}")

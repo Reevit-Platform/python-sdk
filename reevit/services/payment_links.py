@@ -1,10 +1,6 @@
 from typing import Any, Dict, List, Optional
 
-
-def _extract_list(payload: Any, key: str) -> List[Dict[str, Any]]:
-    if isinstance(payload, dict):
-        return payload.get(key, [])
-    return payload or []
+from reevit.services._list import extract_list as _extract_list
 
 
 class PaymentLinksService:

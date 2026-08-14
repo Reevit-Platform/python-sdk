@@ -1,5 +1,8 @@
 from typing import List, Dict, Any, Optional
 
+from reevit.services._list import extract_list as _extract_list
+
+
 class PaymentsService:
     def __init__(self, client):
         self.client = client
@@ -10,7 +13,7 @@ class PaymentsService:
 
     def list(self, limit: int = 50, offset: int = 0) -> List[Dict[str, Any]]:
         params = {"limit": limit, "offset": offset}
-        return self.client.request("GET", "/v1/payments", params=params)
+        return _extract_list(self.client.request("GET", "/v1/payments", params=params), "payments")
 
     def get(self, payment_id: str) -> Dict[str, Any]:
         return self.client.request("GET", f"/v1/payments/{payment_id}")
