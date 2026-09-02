@@ -1,5 +1,8 @@
 from unittest.mock import Mock
 
+import pytest
+
+from reevit.client import ReevitAPIError
 from reevit.services.connections import ConnectionsService
 
 
@@ -52,12 +55,22 @@ def test_list_rejects_malformed_wrapped_response():
     }
     service = ConnectionsService(client)
 
-    try:
+    # A malformed response must not look like an empty connection list.
+    with pytest.raises(ReevitAPIError) as excinfo:
         service.list()
-    except ValueError as error:
-        assert "missing connections array" in str(error)
-    else:
-        raise AssertionError("malformed response should not look like an empty connection list")
+
+    assert excinfo.value.code == "unexpected_response_shape"
+
+
+def test_list_rejects_a_non_object_response():
+    client = Mock()
+    client.request.return_value = "nope"
+    service = ConnectionsService(client)
+
+    with pytest.raises(ReevitAPIError) as excinfo:
+        service.list()
+
+    assert excinfo.value.code == "unexpected_response_shape"
 
 
 def test_list_labels_uses_connection_labels_endpoint():

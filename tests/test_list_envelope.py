@@ -6,14 +6,20 @@ Covers every response shape the SDK must tolerate:
   3. the new envelope, {"data": [...], "pagination": {...}}
   4. the double-nested shape already live at the admin audit-logs endpoint,
      {"data": {"logs": [...]}, "pagination": {...}}
-plus the miss case, where none of the shapes match.
+plus the miss case, where none of the shapes match and the helper raises
+``ReevitAPIError(code="unexpected_response_shape")`` rather than returning an
+empty list -- an empty list is a real answer and must stay distinguishable
+from a response shape the SDK does not understand.
 
 Also exercises the services that route through the helper to make sure the
 wiring is a no-op against today's server response shapes (1 and 2).
 """
 
+import pytest
+
 from unittest.mock import Mock
 
+from reevit.client import ReevitAPIError
 from reevit.services._list import extract_list
 from reevit.services.connections import ConnectionsService
 from reevit.services.customers import CustomersService
@@ -46,10 +52,30 @@ def test_extract_list_double_nested_envelope():
     assert extract_list(payload, "logs") == [{"id": "1"}]
 
 
-def test_extract_list_miss_returns_empty():
-    assert extract_list({"unrelated": "value"}, "customers") == []
-    assert extract_list(None, "customers") == []
-    assert extract_list("not a payload", "customers") == []
+@pytest.mark.parametrize(
+    "payload",
+    [
+        {"unrelated": "value"},
+        None,
+        "not a payload",
+        {"pagination": {"total": 4}},
+    ],
+)
+def test_extract_list_miss_raises(payload):
+    with pytest.raises(ReevitAPIError) as excinfo:
+        extract_list(payload, "customers")
+
+    assert excinfo.value.code == "unexpected_response_shape"
+    assert excinfo.value.status_code == 0
+    assert "customers" in str(excinfo.value)
+
+
+def test_extract_list_recognised_but_empty_still_returns_empty():
+    # An empty list is a real answer; only an unrecognised shape raises.
+    assert extract_list([], "customers") == []
+    assert extract_list({"customers": []}, "customers") == []
+    assert extract_list({"data": []}, "customers") == []
+    assert extract_list({"data": {"customers": []}}, "customers") == []
 
 
 def test_extract_list_flat_key_checked_before_data():
@@ -59,11 +85,21 @@ def test_extract_list_flat_key_checked_before_data():
     assert extract_list(payload, "customers") == [{"id": "flat"}]
 
 
-def test_extract_list_ignores_non_list_candidates():
-    # A non-list value at the key (or at "data") must not be returned as-is.
-    assert extract_list({"customers": {"not": "a list"}}, "customers") == []
-    assert extract_list({"data": "not a list either"}, "customers") == []
-    assert extract_list({"data": {"customers": "still not a list"}}, "customers") == []
+@pytest.mark.parametrize(
+    "payload",
+    [
+        {"customers": {"not": "a list"}},
+        {"data": "not a list either"},
+        {"data": {"customers": "still not a list"}},
+    ],
+)
+def test_extract_list_non_list_candidates_are_a_miss(payload):
+    # A non-list value at the key (or at "data") must not be returned as-is,
+    # and is a miss rather than an empty list.
+    with pytest.raises(ReevitAPIError) as excinfo:
+        extract_list(payload, "customers")
+
+    assert excinfo.value.code == "unexpected_response_shape"
 
 
 # --- service wiring: provable no-op against today's server shapes ---------
@@ -161,9 +197,8 @@ def test_connections_list_page_still_rejects_malformed_response():
     client.request.return_value = {"pagination": {"total": 4}}
     service = ConnectionsService(client)
 
-    try:
+    # A malformed response must not look like an empty connection list.
+    with pytest.raises(ReevitAPIError) as excinfo:
         service.list()
-    except ValueError as error:
-        assert "missing connections array" in str(error)
-    else:
-        raise AssertionError("malformed response should not look like an empty connection list")
+
+    assert excinfo.value.code == "unexpected_response_shape"

@@ -2,6 +2,7 @@ from typing import List, Dict, Any, Optional
 from urllib.parse import quote
 
 from reevit.services._list import extract_list as _extract_list
+from reevit.services._list import raise_unexpected_shape as _raise_unexpected_shape
 
 
 class ConnectionsService:
@@ -27,15 +28,10 @@ class ConnectionsService:
                 },
             }
         if isinstance(response, dict):
+            # Raises ReevitAPIError(code="unexpected_response_shape") when the
+            # body carries no recognised connections array -- a malformed
+            # response must never be mistaken for an empty connection list.
             connections = _extract_list(response, "connections")
-            data = response.get("data")
-            has_shape = (
-                isinstance(response.get("connections"), list)
-                or isinstance(data, list)
-                or (isinstance(data, dict) and isinstance(data.get("connections"), list))
-            )
-            if not has_shape:
-                raise ValueError("unexpected connections response: missing connections array")
             pagination = response.get("pagination")
             if not isinstance(pagination, dict):
                 pagination = {}
@@ -47,7 +43,12 @@ class ConnectionsService:
                     "offset": pagination.get("offset", params.get("offset", 0)),
                 },
             }
-        raise ValueError("unexpected connections response: expected an object")
+        _raise_unexpected_shape(
+            response,
+            "connections",
+            "unexpected connections response: expected an object or an array, "
+            f"got {type(response).__name__}",
+        )
 
     def list_all(
         self,

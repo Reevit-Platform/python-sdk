@@ -9,9 +9,40 @@ double-nested envelope (``{"data": {"<key>": [...]}, "pagination": {...}}``)
 ``extract_list`` resolves all of these shapes to a plain list, in an order
 that is load-bearing: the legacy flat key is checked *before* ``data``, which
 is what makes this a provable no-op against the server as it behaves today.
+
+A shape it does *not* recognise raises ``ReevitAPIError`` rather than
+returning ``[]``. An empty list is a real answer -- "this merchant has no
+payments" -- and a reconciliation sweep that cannot tell it apart from "the
+response shape changed" reports zero settlements instead of failing loudly.
+Go and Rust already raise here; this brings Python in line.
 """
 
-from typing import Any, Dict, List
+from typing import Any, Dict, List, NoReturn, Optional
+
+_UNEXPECTED_SHAPE_CODE = "unexpected_response_shape"
+
+
+def raise_unexpected_shape(payload: Any, key: str, message: Optional[str] = None) -> NoReturn:
+    """Raise the SDK's canonical "I do not understand this body" error.
+
+    Shared by ``extract_list`` and by services that resolve a list themselves,
+    so every SDK surface reports the same ``unexpected_response_shape`` code.
+    """
+    # Imported lazily: reevit.client imports the services at module scope, so a
+    # top-level import here would be circular.
+    from reevit.client import ReevitAPIError
+
+    raise ReevitAPIError(
+        0,
+        message
+        or (
+            f"unexpected response shape for {key!r}: could not find a list at "
+            f"the top level, at {key!r}, at 'data', or at 'data.{key}' "
+            f"(got {type(payload).__name__})"
+        ),
+        _UNEXPECTED_SHAPE_CODE,
+        {"key": key, "received_type": type(payload).__name__},
+    )
 
 
 def extract_list(payload: Any, key: str) -> List[Dict[str, Any]]:
@@ -24,11 +55,17 @@ def extract_list(payload: Any, key: str) -> List[Dict[str, Any]]:
          b. ``payload["data"]`` is a list -> return it.
          c. ``payload["data"]`` is a dict and ``payload["data"][key]`` is a
             list -> return it.
-      3. otherwise -> return ``[]``.
+      3. otherwise -> raise ``ReevitAPIError`` with code
+         ``unexpected_response_shape``.
 
     Every candidate is type-checked with ``isinstance(..., list)`` before
     being returned, so a non-list value living at any of these keys is
     treated as a miss rather than returned as-is.
+
+    A recognised container that happens to be empty (``[]``, ``{"<key>": []}``,
+    ``{"data": []}``) still returns ``[]`` -- only an unrecognised shape raises.
+
+    :raises ReevitAPIError: status ``0``, code ``unexpected_response_shape``.
     """
     if isinstance(payload, list):
         return payload
@@ -47,4 +84,4 @@ def extract_list(payload: Any, key: str) -> List[Dict[str, Any]]:
             if isinstance(nested, list):
                 return nested
 
-    return []
+    raise_unexpected_shape(payload, key)

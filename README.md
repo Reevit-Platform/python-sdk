@@ -72,6 +72,30 @@ payment = client.payments.create_intent(
 )
 ```
 
+## Error handling
+
+Every failed API call raises `ReevitAPIError`.
+
+```python
+from reevit import Reevit, ReevitAPIError
+
+try:
+    payment = client.payments.get("pay_123")
+except ReevitAPIError as error:
+    print(error.status_code)  # HTTP status, or 0 for client-side errors
+    print(error.code)         # machine-readable code, e.g. "not_found"
+    print(error.details)      # dict of extra context, may be empty
+```
+
+### `unexpected_response_shape`
+
+List helpers raise `ReevitAPIError(status_code=0, code="unexpected_response_shape")`
+when a response body contains no list the SDK recognises. They deliberately do
+**not** return `[]` in that case: an empty list is a real answer ("this merchant
+has no payments"), and a reconciliation job must not silently report zero
+settlements because a response shape changed. A recognised container that is
+genuinely empty still returns `[]`.
+
 ## Features
 
 - **Payments**: Create intents, update intents, confirm, confirm intent, cancel, retry, refund, stats
