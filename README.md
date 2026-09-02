@@ -85,7 +85,13 @@ except ReevitAPIError as error:
     print(error.status_code)  # HTTP status, or 0 for client-side errors
     print(error.code)         # machine-readable code, e.g. "not_found"
     print(error.details)      # dict of extra context, may be empty
+    print(error.request_id)   # X-Request-Id of the failed response, or None
 ```
+
+`request_id` is read from the response's `X-Request-Id` header (falling back to
+`X-Reevit-Request-Id`) and is appended to `str(error)`, so it shows up in logs
+without any extra work. Quote it when you open a support ticket — it is the
+handle that ties your failure to a server-side log line.
 
 ### `unexpected_response_shape`
 

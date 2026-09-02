@@ -18,14 +18,58 @@ API_BASE_URL_PRODUCTION = 'https://api.reevit.io'
 DEFAULT_TIMEOUT = 30
 
 class ReevitAPIError(Exception):
-    def __init__(self, status_code: int, message: str, code: Optional[str] = None, details: Optional[Dict[str, Any]] = None):
+    """An error returned by the Reevit API, or raised by the SDK about one.
+
+    :ivar status_code: HTTP status, or ``0`` for errors raised client-side
+        (e.g. ``unexpected_response_shape``).
+    :ivar code: machine-readable error code; defaults to ``"api_error"``.
+    :ivar details: extra context from the response body; may be empty.
+    :ivar request_id: the ``X-Request-Id`` of the failed response, when the
+        server sent one. Quote it in support tickets -- it is the only handle
+        that ties a merchant-side failure to a server-side log line.
+    """
+
+    def __init__(
+        self,
+        status_code: int,
+        message: str,
+        code: Optional[str] = None,
+        details: Optional[Dict[str, Any]] = None,
+        request_id: Optional[str] = None,
+    ):
         self.status_code = status_code
         self.code = code or "api_error"
         self.details = details or {}
+        self.request_id = request_id
+        self.message = message
         super().__init__(message)
+
+    def __str__(self) -> str:
+        base = super().__str__()
+        if self.request_id:
+            return f"{base} (request_id={self.request_id})"
+        return base
 
 def is_sandbox_key(api_key: str) -> bool:
     return api_key.startswith('pfk_test_')
+
+
+# Header the API edge sets on every response. The second name is the legacy
+# spelling still emitted by some proxies in front of the gateway.
+_REQUEST_ID_HEADERS = ("X-Request-Id", "X-Reevit-Request-Id")
+
+
+def _request_id_from(headers: Any) -> Optional[str]:
+    """Pull the request id out of a response's headers.
+
+    ``requests`` gives case-insensitive headers, so the casing here is
+    cosmetic. Returns ``None`` when neither header is present or non-empty.
+    """
+    for name in _REQUEST_ID_HEADERS:
+        value = headers.get(name)
+        if value:
+            return str(value)
+    return None
 
 class Reevit:
     def __init__(self, api_key: str, org_id: Optional[str] = None, base_url: Optional[str] = None, timeout: int = DEFAULT_TIMEOUT):
@@ -81,11 +125,14 @@ class Reevit:
                 payload = response.json()
             except ValueError:
                 payload = {}
+            if not isinstance(payload, dict):
+                payload = {}
             raise ReevitAPIError(
                 response.status_code,
                 payload.get("message") or response.text or "request failed",
                 payload.get("code"),
                 payload.get("details"),
+                _request_id_from(response.headers),
             )
 
         try:
