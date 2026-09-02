@@ -72,6 +72,20 @@ payment = client.payments.create_intent(
 )
 ```
 
+## Test and live mode
+
+Mode is a property of the API key, not of the environment — the backend derives
+it from the key's prefix and ignores any mode header for API-key principals.
+`client.mode` exposes the same classification:
+
+```python
+client = Reevit(api_key="pfk_live_xxx", org_id="org_123")
+client.mode  # "live"  ("test" for pfk_test_ keys, None if unrecognised)
+
+if client.mode != "test":
+    raise SystemExit("refusing to run this backfill against live keys")
+```
+
 ## Error handling
 
 Every failed API call raises `ReevitAPIError`.

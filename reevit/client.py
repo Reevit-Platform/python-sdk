@@ -50,8 +50,32 @@ class ReevitAPIError(Exception):
             return f"{base} (request_id={self.request_id})"
         return base
 
+LIVE_KEY_PREFIX = "pfk_live_"
+TEST_KEY_PREFIX = "pfk_test_"
+
+
 def is_sandbox_key(api_key: str) -> bool:
-    return api_key.startswith('pfk_test_')
+    """True if ``api_key`` is a test-mode key. See :func:`mode_from_api_key`."""
+    return api_key.startswith(TEST_KEY_PREFIX)
+
+
+def mode_from_api_key(api_key: str) -> Optional[str]:
+    """Classify an API key as ``"test"`` or ``"live"`` from its prefix.
+
+    Mode is a property of the key, not of the environment. The backend derives
+    it from this prefix and ignores ``X-Reevit-Mode`` entirely for API-key
+    principals, so the key is the single source of truth about whether a call
+    moves real money -- the same contract the CLI and MCP server use.
+
+    :returns: ``"test"``, ``"live"``, or ``None`` for a key we cannot
+        classify. ``None`` rather than a guess: defaulting an unrecognised key
+        to ``"test"`` would tell a merchant a live call was safe.
+    """
+    if api_key.startswith(LIVE_KEY_PREFIX):
+        return "live"
+    if api_key.startswith(TEST_KEY_PREFIX):
+        return "test"
+    return None
 
 
 # Header the API edge sets on every response. The second name is the legacy
@@ -88,6 +112,7 @@ class Reevit:
         self.base_url = base_url.rstrip("/")
         self.org_id = org_id
         self.timeout = timeout
+        self._api_key = api_key
 
         self.payments = PaymentsService(self)
         self.connections = ConnectionsService(self)
@@ -100,6 +125,19 @@ class Reevit:
         self.routing_rules = RoutingRulesService(self)
         self.invoices = InvoicesService(self)
         self.payouts = PayoutsService(self)
+
+    @property
+    def mode(self) -> Optional[str]:
+        """``"test"`` or ``"live"``, derived from the API key's prefix.
+
+        ``None`` when the key prefix is not one this SDK recognises. Use it to
+        keep test-mode data out of production reporting, or to refuse to run a
+        destructive script against live keys::
+
+            if client.mode != "test":
+                raise SystemExit("refusing to run against live keys")
+        """
+        return mode_from_api_key(self._api_key)
 
     def request(self, method: str, path: str, **kwargs) -> Any:
         if not path.startswith("/v1/pay/") and not self.org_id:

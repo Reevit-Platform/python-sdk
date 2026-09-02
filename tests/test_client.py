@@ -147,3 +147,38 @@ def test_ordinary_ids_are_unchanged_on_the_wire():
 
         client.payments.get("pay_01HZY3ABC")
         assert http.request_history[0].path_url == "/v1/payments/pay_01HZY3ABC"
+
+
+# --- mode -----------------------------------------------------------------
+
+# Mode is a property of the key, never of the environment: the backend derives
+# it from the prefix and ignores X-Reevit-Mode for API-key principals. Same
+# contract as the CLI and the MCP server.
+
+
+def test_mode_is_test_for_a_test_key():
+    assert make_client("pfk_test_abc123").mode == "test"
+
+
+def test_mode_is_live_for_a_live_key():
+    assert make_client("pfk_live_abc123").mode == "live"
+
+
+def test_mode_is_none_for_an_unrecognised_prefix():
+    # None rather than a guess: defaulting an unclassifiable key to "test"
+    # would tell a merchant a live call was safe.
+    assert make_client("sk_something_else").mode is None
+    assert make_client("").mode is None
+
+
+def test_mode_is_not_influenced_by_the_base_url():
+    production = Reevit(api_key="pfk_test_abc", org_id="org_1")
+
+    assert production.mode == "test"
+
+
+def test_mode_from_api_key_and_is_sandbox_key_agree():
+    from reevit.client import is_sandbox_key, mode_from_api_key
+
+    for key in ("pfk_test_abc", "pfk_live_abc", "sk_other"):
+        assert is_sandbox_key(key) is (mode_from_api_key(key) == "test")
