@@ -138,6 +138,38 @@ There are **two types of webhooks** in Reevit:
 - **Header**: `X-Reevit-Signature: sha256=<hex-signature>`
 - **Signature**: `HMAC-SHA256(request_body, signing_secret)`
 
+### Verifying a delivery
+
+`construct_event` is the one call a handler needs: it verifies the HMAC over the
+raw bytes, rejects replays outside a 5-minute window, and only then parses the
+body — so there is no way to act on an unverified payload.
+
+```python
+from reevit import construct_event, WebhookVerificationError
+
+try:
+    event = construct_event(raw_body, request.headers.get("X-Reevit-Signature"), SECRET)
+except WebhookVerificationError as error:
+    # error.code: invalid_signature | invalid_payload
+    #             missing_signature_timestamp | timestamp_out_of_tolerance
+    return "", 401
+
+print(event["event"], event["data"])
+```
+
+Pass `tolerance_seconds=` to widen or narrow the replay window (default `300`,
+checked in both directions so modest clock skew does not drop live deliveries).
+`verify_webhook_signature_with_tolerance(...)` is the same check with a boolean
+return, for handlers that parse the body themselves.
+
+`verify_webhook_signature(...)` remains available and is unchanged: it checks
+only the HMAC, so a delivery captured off the wire replays forever. Prefer
+`construct_event`.
+
+Verify against the exact bytes you received. Do not `json.loads` and
+re-serialize the body first — key order and whitespace must match what Reevit
+signed.
+
 ### Getting Your Signing Secret
 
 1. Go to **Reevit Dashboard > Developers > Webhooks**
