@@ -1,8 +1,8 @@
 from typing import List, Dict, Any, Optional
-from urllib.parse import quote
 
 from reevit.services._list import extract_list as _extract_list
 from reevit.services._list import raise_unexpected_shape as _raise_unexpected_shape
+from reevit.services._paths import seg as _seg
 
 
 class ConnectionsService:
@@ -80,18 +80,18 @@ class ConnectionsService:
             offset = next_offset
 
     def get(self, connection_id: str) -> Dict[str, Any]:
-        return self.client.request("GET", f"/v1/connections/{quote(connection_id, safe='')}")
+        return self.client.request("GET", f"/v1/connections/{_seg(connection_id)}")
 
     def delete(self, connection_id: str, idempotency_key: Optional[str] = None) -> None:
         headers = {"Idempotency-Key": idempotency_key} if idempotency_key else None
-        self.client.request("DELETE", f"/v1/connections/{quote(connection_id, safe='')}", headers=headers)
+        self.client.request("DELETE", f"/v1/connections/{_seg(connection_id)}", headers=headers)
 
     def validate(self, connection_id: str, idempotency_key: Optional[str] = None) -> Dict[str, Any]:
         headers = {"Idempotency-Key": idempotency_key} if idempotency_key else None
-        return self.client.request("POST", f"/v1/connections/{quote(connection_id, safe='')}/validate", headers=headers)
+        return self.client.request("POST", f"/v1/connections/{_seg(connection_id)}/validate", headers=headers)
 
     def list_audit(self, connection_id: str, **params: Any) -> List[Dict[str, Any]]:
-        response = self.client.request("GET", f"/v1/connections/{quote(connection_id, safe='')}/audit", params=params)
+        response = self.client.request("GET", f"/v1/connections/{_seg(connection_id)}/audit", params=params)
         return _extract_list(response, "audit")
 
     def list_labels(self) -> List[Dict[str, Any]]:
@@ -104,7 +104,7 @@ class ConnectionsService:
         headers = {"Idempotency-Key": idempotency_key} if idempotency_key else None
         return self.client.request(
             "PATCH",
-            f"/v1/connections/{quote(connection_id, safe='')}/labels",
+            f"/v1/connections/{_seg(connection_id)}/labels",
             json={"labels": labels},
             headers=headers,
         )
@@ -113,7 +113,7 @@ class ConnectionsService:
         headers = {"Idempotency-Key": idempotency_key} if idempotency_key else None
         return self.client.request(
             "PATCH",
-            f"/v1/connections/{quote(connection_id, safe='')}/status",
+            f"/v1/connections/{_seg(connection_id)}/status",
             json={"status": status},
             headers=headers,
         )

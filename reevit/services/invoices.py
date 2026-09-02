@@ -1,6 +1,7 @@
 from typing import Any, Dict, List, Optional
 
 from reevit.services._list import extract_list as _extract_list
+from reevit.services._paths import seg as _seg
 
 
 class InvoicesService:
@@ -11,16 +12,16 @@ class InvoicesService:
         return _extract_list(self.client.request("GET", "/v1/invoices", params=params), "invoices")
 
     def get(self, invoice_id: str) -> Dict[str, Any]:
-        return self.client.request("GET", f"/v1/invoices/{invoice_id}")
+        return self.client.request("GET", f"/v1/invoices/{_seg(invoice_id)}")
 
     def update(self, invoice_id: str, data: Dict[str, Any], idempotency_key: Optional[str] = None) -> Dict[str, Any]:
         headers = {"Idempotency-Key": idempotency_key} if idempotency_key else None
-        return self.client.request("PATCH", f"/v1/invoices/{invoice_id}", json=data, headers=headers)
+        return self.client.request("PATCH", f"/v1/invoices/{_seg(invoice_id)}", json=data, headers=headers)
 
     def cancel(self, invoice_id: str, idempotency_key: Optional[str] = None) -> Dict[str, Any]:
         headers = {"Idempotency-Key": idempotency_key} if idempotency_key else None
-        return self.client.request("POST", f"/v1/invoices/{invoice_id}/cancel", json={}, headers=headers)
+        return self.client.request("POST", f"/v1/invoices/{_seg(invoice_id)}/cancel", json={}, headers=headers)
 
     def retry(self, invoice_id: str, idempotency_key: Optional[str] = None) -> Dict[str, Any]:
         headers = {"Idempotency-Key": idempotency_key} if idempotency_key else None
-        return self.client.request("POST", f"/v1/invoices/{invoice_id}/retry", json={}, headers=headers)
+        return self.client.request("POST", f"/v1/invoices/{_seg(invoice_id)}/retry", json={}, headers=headers)

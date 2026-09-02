@@ -1,6 +1,7 @@
 from typing import Any, Dict, List, Optional
 
 from reevit.services._list import extract_list as _extract_list
+from reevit.services._paths import seg as _seg
 
 
 class WebhooksService:
@@ -26,14 +27,14 @@ class WebhooksService:
         return _extract_list(self.client.request("GET", "/v1/webhooks/events", params=params), "events")
 
     def get_event(self, event_id: str) -> Dict[str, Any]:
-        return self.client.request("GET", f"/v1/webhooks/events/{event_id}")
+        return self.client.request("GET", f"/v1/webhooks/events/{_seg(event_id)}")
 
     def replay_event(self, event_id: str, idempotency_key: Optional[str] = None) -> Dict[str, Any]:
         headers = {"Idempotency-Key": idempotency_key} if idempotency_key else None
-        return self.client.request("POST", f"/v1/webhooks/events/{event_id}/replay", json={}, headers=headers)
+        return self.client.request("POST", f"/v1/webhooks/events/{_seg(event_id)}/replay", json={}, headers=headers)
 
     def list_outbound(self, **params: Any) -> List[Dict[str, Any]]:
         return _extract_list(self.client.request("GET", "/v1/webhooks/outbound", params=params), "outbound")
 
     def get_outbound(self, outbound_id: str) -> Dict[str, Any]:
-        return self.client.request("GET", f"/v1/webhooks/outbound/{outbound_id}")
+        return self.client.request("GET", f"/v1/webhooks/outbound/{_seg(outbound_id)}")
