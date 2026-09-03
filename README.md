@@ -9,7 +9,7 @@ The official Python SDK for [Reevit](https://reevit.io) — a unified payment or
 ## Installation
 
 ```bash
-pip install reevit==0.9.1
+pip install reevit
 ```
 
 ## Quick Start
@@ -72,6 +72,50 @@ payment = client.payments.create_intent(
 )
 ```
 
+## Test and live mode
+
+Mode is a property of the API key, not of the environment — the backend derives
+it from the key's prefix and ignores any mode header for API-key principals.
+`client.mode` exposes the same classification:
+
+```python
+client = Reevit(api_key="pfk_live_xxx", org_id="org_123")
+client.mode  # "live"  ("test" for pfk_test_ keys, None if unrecognised)
+
+if client.mode != "test":
+    raise SystemExit("refusing to run this backfill against live keys")
+```
+
+## Error handling
+
+Every failed API call raises `ReevitAPIError`.
+
+```python
+from reevit import Reevit, ReevitAPIError
+
+try:
+    payment = client.payments.get("pay_123")
+except ReevitAPIError as error:
+    print(error.status_code)  # HTTP status, or 0 for client-side errors
+    print(error.code)         # machine-readable code, e.g. "not_found"
+    print(error.details)      # dict of extra context, may be empty
+    print(error.request_id)   # X-Request-Id of the failed response, or None
+```
+
+`request_id` is read from the response's `X-Request-Id` header (falling back to
+`X-Reevit-Request-Id`) and is appended to `str(error)`, so it shows up in logs
+without any extra work. Quote it when you open a support ticket — it is the
+handle that ties your failure to a server-side log line.
+
+### `unexpected_response_shape`
+
+List helpers raise `ReevitAPIError(status_code=0, code="unexpected_response_shape")`
+when a response body contains no list the SDK recognises. They deliberately do
+**not** return `[]` in that case: an empty list is a real answer ("this merchant
+has no payments"), and a reconciliation job must not silently report zero
+settlements because a response shape changed. A recognised container that is
+genuinely empty still returns `[]`.
+
 ## Features
 
 - **Payments**: Create intents, update intents, confirm, confirm intent, cancel, retry, refund, stats
@@ -107,6 +151,38 @@ There are **two types of webhooks** in Reevit:
 
 - **Header**: `X-Reevit-Signature: sha256=<hex-signature>`
 - **Signature**: `HMAC-SHA256(request_body, signing_secret)`
+
+### Verifying a delivery
+
+`construct_event` is the one call a handler needs: it verifies the HMAC over the
+raw bytes, rejects replays outside a 5-minute window, and only then parses the
+body — so there is no way to act on an unverified payload.
+
+```python
+from reevit import construct_event, WebhookVerificationError
+
+try:
+    event = construct_event(raw_body, request.headers.get("X-Reevit-Signature"), SECRET)
+except WebhookVerificationError as error:
+    # error.code: invalid_signature | invalid_payload
+    #             missing_signature_timestamp | timestamp_out_of_tolerance
+    return "", 401
+
+print(event["event"], event["data"])
+```
+
+Pass `tolerance_seconds=` to widen or narrow the replay window (default `300`,
+checked in both directions so modest clock skew does not drop live deliveries).
+`verify_webhook_signature_with_tolerance(...)` is the same check with a boolean
+return, for handlers that parse the body themselves.
+
+`verify_webhook_signature(...)` remains available and is unchanged: it checks
+only the HMAC, so a delivery captured off the wire replays forever. Prefer
+`construct_event`.
+
+Verify against the exact bytes you received. Do not `json.loads` and
+re-serialize the body first — key order and whitespace must match what Reevit
+signed.
 
 ### Getting Your Signing Secret
 

@@ -1,4 +1,5 @@
 from typing import Any, Dict, Optional
+from reevit.services._paths import seg as _seg
 
 
 class PayoutsService:
@@ -32,13 +33,13 @@ class PayoutsService:
         return self.client.request("GET", "/v1/payouts", params=params)
 
     def get(self, payout_id: str) -> Dict[str, Any]:
-        return self.client.request("GET", f"/v1/payouts/{payout_id}")
+        return self.client.request("GET", f"/v1/payouts/{_seg(payout_id)}")
 
     def confirm(self, payout_id: str) -> Dict[str, Any]:
-        return self.client.request("POST", f"/v1/payouts/{payout_id}/confirm", json={})
+        return self.client.request("POST", f"/v1/payouts/{_seg(payout_id)}/confirm", json={})
 
     def cancel(self, payout_id: str) -> Dict[str, Any]:
-        return self.client.request("POST", f"/v1/payouts/{payout_id}/cancel", json={})
+        return self.client.request("POST", f"/v1/payouts/{_seg(payout_id)}/cancel", json={})
 
     def create_bulk(
         self,
@@ -87,10 +88,10 @@ class PayoutsService:
         )
 
     def get_beneficiary(self, beneficiary_id: str) -> Dict[str, Any]:
-        return self.client.request("GET", f"/v1/beneficiaries/{beneficiary_id}")
+        return self.client.request("GET", f"/v1/beneficiaries/{_seg(beneficiary_id)}")
 
     def delete_beneficiary(self, beneficiary_id: str) -> Dict[str, Any]:
-        return self.client.request("DELETE", f"/v1/beneficiaries/{beneficiary_id}")
+        return self.client.request("DELETE", f"/v1/beneficiaries/{_seg(beneficiary_id)}")
 
     @staticmethod
     def _require_idempotency_key(idempotency_key: str) -> None:

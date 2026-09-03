@@ -1,7 +1,8 @@
 from typing import List, Dict, Any, Optional
-from urllib.parse import quote
 
 from reevit.services._list import extract_list as _extract_list
+from reevit.services._list import raise_unexpected_shape as _raise_unexpected_shape
+from reevit.services._paths import seg as _seg
 
 
 class ConnectionsService:
@@ -27,15 +28,10 @@ class ConnectionsService:
                 },
             }
         if isinstance(response, dict):
+            # Raises ReevitAPIError(code="unexpected_response_shape") when the
+            # body carries no recognised connections array -- a malformed
+            # response must never be mistaken for an empty connection list.
             connections = _extract_list(response, "connections")
-            data = response.get("data")
-            has_shape = (
-                isinstance(response.get("connections"), list)
-                or isinstance(data, list)
-                or (isinstance(data, dict) and isinstance(data.get("connections"), list))
-            )
-            if not has_shape:
-                raise ValueError("unexpected connections response: missing connections array")
             pagination = response.get("pagination")
             if not isinstance(pagination, dict):
                 pagination = {}
@@ -47,7 +43,12 @@ class ConnectionsService:
                     "offset": pagination.get("offset", params.get("offset", 0)),
                 },
             }
-        raise ValueError("unexpected connections response: expected an object")
+        _raise_unexpected_shape(
+            response,
+            "connections",
+            "unexpected connections response: expected an object or an array, "
+            f"got {type(response).__name__}",
+        )
 
     def list_all(
         self,
@@ -79,18 +80,18 @@ class ConnectionsService:
             offset = next_offset
 
     def get(self, connection_id: str) -> Dict[str, Any]:
-        return self.client.request("GET", f"/v1/connections/{quote(connection_id, safe='')}")
+        return self.client.request("GET", f"/v1/connections/{_seg(connection_id)}")
 
     def delete(self, connection_id: str, idempotency_key: Optional[str] = None) -> None:
         headers = {"Idempotency-Key": idempotency_key} if idempotency_key else None
-        self.client.request("DELETE", f"/v1/connections/{quote(connection_id, safe='')}", headers=headers)
+        self.client.request("DELETE", f"/v1/connections/{_seg(connection_id)}", headers=headers)
 
     def validate(self, connection_id: str, idempotency_key: Optional[str] = None) -> Dict[str, Any]:
         headers = {"Idempotency-Key": idempotency_key} if idempotency_key else None
-        return self.client.request("POST", f"/v1/connections/{quote(connection_id, safe='')}/validate", headers=headers)
+        return self.client.request("POST", f"/v1/connections/{_seg(connection_id)}/validate", headers=headers)
 
     def list_audit(self, connection_id: str, **params: Any) -> List[Dict[str, Any]]:
-        response = self.client.request("GET", f"/v1/connections/{quote(connection_id, safe='')}/audit", params=params)
+        response = self.client.request("GET", f"/v1/connections/{_seg(connection_id)}/audit", params=params)
         return _extract_list(response, "audit")
 
     def list_labels(self) -> List[Dict[str, Any]]:
@@ -103,7 +104,7 @@ class ConnectionsService:
         headers = {"Idempotency-Key": idempotency_key} if idempotency_key else None
         return self.client.request(
             "PATCH",
-            f"/v1/connections/{quote(connection_id, safe='')}/labels",
+            f"/v1/connections/{_seg(connection_id)}/labels",
             json={"labels": labels},
             headers=headers,
         )
@@ -112,7 +113,7 @@ class ConnectionsService:
         headers = {"Idempotency-Key": idempotency_key} if idempotency_key else None
         return self.client.request(
             "PATCH",
-            f"/v1/connections/{quote(connection_id, safe='')}/status",
+            f"/v1/connections/{_seg(connection_id)}/status",
             json={"status": status},
             headers=headers,
         )

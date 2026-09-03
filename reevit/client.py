@@ -18,14 +18,82 @@ API_BASE_URL_PRODUCTION = 'https://api.reevit.io'
 DEFAULT_TIMEOUT = 30
 
 class ReevitAPIError(Exception):
-    def __init__(self, status_code: int, message: str, code: Optional[str] = None, details: Optional[Dict[str, Any]] = None):
+    """An error returned by the Reevit API, or raised by the SDK about one.
+
+    :ivar status_code: HTTP status, or ``0`` for errors raised client-side
+        (e.g. ``unexpected_response_shape``).
+    :ivar code: machine-readable error code; defaults to ``"api_error"``.
+    :ivar details: extra context from the response body; may be empty.
+    :ivar request_id: the ``X-Request-Id`` of the failed response, when the
+        server sent one. Quote it in support tickets -- it is the only handle
+        that ties a merchant-side failure to a server-side log line.
+    """
+
+    def __init__(
+        self,
+        status_code: int,
+        message: str,
+        code: Optional[str] = None,
+        details: Optional[Dict[str, Any]] = None,
+        request_id: Optional[str] = None,
+    ):
         self.status_code = status_code
         self.code = code or "api_error"
         self.details = details or {}
+        self.request_id = request_id
+        self.message = message
         super().__init__(message)
 
+    def __str__(self) -> str:
+        base = super().__str__()
+        if self.request_id:
+            return f"{base} (request_id={self.request_id})"
+        return base
+
+LIVE_KEY_PREFIX = "pfk_live_"
+TEST_KEY_PREFIX = "pfk_test_"
+
+
 def is_sandbox_key(api_key: str) -> bool:
-    return api_key.startswith('pfk_test_')
+    """True if ``api_key`` is a test-mode key. See :func:`mode_from_api_key`."""
+    return api_key.startswith(TEST_KEY_PREFIX)
+
+
+def mode_from_api_key(api_key: str) -> Optional[str]:
+    """Classify an API key as ``"test"`` or ``"live"`` from its prefix.
+
+    Mode is a property of the key, not of the environment. The backend derives
+    it from this prefix and ignores ``X-Reevit-Mode`` entirely for API-key
+    principals, so the key is the single source of truth about whether a call
+    moves real money -- the same contract the CLI and MCP server use.
+
+    :returns: ``"test"``, ``"live"``, or ``None`` for a key we cannot
+        classify. ``None`` rather than a guess: defaulting an unrecognised key
+        to ``"test"`` would tell a merchant a live call was safe.
+    """
+    if api_key.startswith(LIVE_KEY_PREFIX):
+        return "live"
+    if api_key.startswith(TEST_KEY_PREFIX):
+        return "test"
+    return None
+
+
+# Header the API edge sets on every response. The second name is the legacy
+# spelling still emitted by some proxies in front of the gateway.
+_REQUEST_ID_HEADERS = ("X-Request-Id", "X-Reevit-Request-Id")
+
+
+def _request_id_from(headers: Any) -> Optional[str]:
+    """Pull the request id out of a response's headers.
+
+    ``requests`` gives case-insensitive headers, so the casing here is
+    cosmetic. Returns ``None`` when neither header is present or non-empty.
+    """
+    for name in _REQUEST_ID_HEADERS:
+        value = headers.get(name)
+        if value:
+            return str(value)
+    return None
 
 class Reevit:
     def __init__(self, api_key: str, org_id: Optional[str] = None, base_url: Optional[str] = None, timeout: int = DEFAULT_TIMEOUT):
@@ -44,6 +112,7 @@ class Reevit:
         self.base_url = base_url.rstrip("/")
         self.org_id = org_id
         self.timeout = timeout
+        self._api_key = api_key
 
         self.payments = PaymentsService(self)
         self.connections = ConnectionsService(self)
@@ -56,6 +125,19 @@ class Reevit:
         self.routing_rules = RoutingRulesService(self)
         self.invoices = InvoicesService(self)
         self.payouts = PayoutsService(self)
+
+    @property
+    def mode(self) -> Optional[str]:
+        """``"test"`` or ``"live"``, derived from the API key's prefix.
+
+        ``None`` when the key prefix is not one this SDK recognises. Use it to
+        keep test-mode data out of production reporting, or to refuse to run a
+        destructive script against live keys::
+
+            if client.mode != "test":
+                raise SystemExit("refusing to run against live keys")
+        """
+        return mode_from_api_key(self._api_key)
 
     def request(self, method: str, path: str, **kwargs) -> Any:
         if not path.startswith("/v1/pay/") and not self.org_id:
@@ -81,11 +163,14 @@ class Reevit:
                 payload = response.json()
             except ValueError:
                 payload = {}
+            if not isinstance(payload, dict):
+                payload = {}
             raise ReevitAPIError(
                 response.status_code,
                 payload.get("message") or response.text or "request failed",
                 payload.get("code"),
                 payload.get("details"),
+                _request_id_from(response.headers),
             )
 
         try:

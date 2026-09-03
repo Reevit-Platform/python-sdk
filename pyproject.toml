@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "reevit"
+description = "Reevit Python SDK"
+readme = { file = "README.md", content-type = "text/markdown" }
+license = { text = "MIT" }
+authors = [{ name = "Reevit" }]
+# Read statically from reevit/_version.py, which is deliberately import-free
+# so the package's runtime dependencies are not needed at build time.
+dynamic = ["version"]
+requires-python = ">=3.9"
+dependencies = [
+    "requests>=2.25.0",
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Typing :: Typed",
+]
+
+[project.urls]
+Homepage = "https://github.com/Reevit-Platform/python-sdk"
+Documentation = "https://docs.reevit.io"
+
+[tool.setuptools.dynamic]
+version = { attr = "reevit._version.__version__" }
+
+[tool.setuptools.packages.find]
+exclude = ["tests", "tests.*"]
+
+[tool.setuptools.package-data]
+reevit = ["py.typed"]

@@ -1,6 +1,7 @@
 from typing import List, Dict, Any, Optional
 
 from reevit.services._list import extract_list as _extract_list
+from reevit.services._paths import seg as _seg
 
 
 class SubscriptionsService:
@@ -15,16 +16,16 @@ class SubscriptionsService:
         return _extract_list(self.client.request("GET", "/v1/subscriptions", params=params), "subscriptions")
 
     def get(self, subscription_id: str) -> Dict[str, Any]:
-        return self.client.request("GET", f"/v1/subscriptions/{subscription_id}")
+        return self.client.request("GET", f"/v1/subscriptions/{_seg(subscription_id)}")
 
     def update(self, subscription_id: str, data: Dict[str, Any], idempotency_key: Optional[str] = None) -> Dict[str, Any]:
         headers = {"Idempotency-Key": idempotency_key} if idempotency_key else None
-        return self.client.request("PATCH", f"/v1/subscriptions/{subscription_id}", json=data, headers=headers)
+        return self.client.request("PATCH", f"/v1/subscriptions/{_seg(subscription_id)}", json=data, headers=headers)
 
     def cancel(self, subscription_id: str, idempotency_key: Optional[str] = None) -> Dict[str, Any]:
         headers = {"Idempotency-Key": idempotency_key} if idempotency_key else None
-        return self.client.request("POST", f"/v1/subscriptions/{subscription_id}/cancel", json={}, headers=headers)
+        return self.client.request("POST", f"/v1/subscriptions/{_seg(subscription_id)}/cancel", json={}, headers=headers)
 
     def resume(self, subscription_id: str, idempotency_key: Optional[str] = None) -> Dict[str, Any]:
         headers = {"Idempotency-Key": idempotency_key} if idempotency_key else None
-        return self.client.request("POST", f"/v1/subscriptions/{subscription_id}/resume", json={}, headers=headers)
+        return self.client.request("POST", f"/v1/subscriptions/{_seg(subscription_id)}/resume", json={}, headers=headers)

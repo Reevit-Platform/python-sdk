@@ -1,6 +1,7 @@
 from typing import Any, Dict, List, Optional
 
 from reevit.services._list import extract_list as _extract_list
+from reevit.services._paths import seg as _seg
 
 
 class RoutingRulesService:
@@ -15,12 +16,12 @@ class RoutingRulesService:
         return self.client.request("POST", "/v1/routing-rules", json=data, headers=headers)
 
     def get(self, rule_id: str) -> Dict[str, Any]:
-        return self.client.request("GET", f"/v1/routing-rules/{rule_id}")
+        return self.client.request("GET", f"/v1/routing-rules/{_seg(rule_id)}")
 
     def update(self, rule_id: str, data: Dict[str, Any], idempotency_key: Optional[str] = None) -> Dict[str, Any]:
         headers = {"Idempotency-Key": idempotency_key} if idempotency_key else None
-        return self.client.request("PATCH", f"/v1/routing-rules/{rule_id}", json=data, headers=headers)
+        return self.client.request("PATCH", f"/v1/routing-rules/{_seg(rule_id)}", json=data, headers=headers)
 
     def delete(self, rule_id: str, idempotency_key: Optional[str] = None) -> None:
         headers = {"Idempotency-Key": idempotency_key} if idempotency_key else None
-        self.client.request("DELETE", f"/v1/routing-rules/{rule_id}", headers=headers)
+        self.client.request("DELETE", f"/v1/routing-rules/{_seg(rule_id)}", headers=headers)
