@@ -46,7 +46,7 @@ class PaymentsService:
         return self.client.request("POST", f"/v1/payments/{_seg(payment_id)}/retry", json={}, headers=headers)
 
     def refund(self, payment_id: str, amount: Optional[int] = None, reason: Optional[str] = None, idempotency_key: Optional[str] = None) -> Dict[str, Any]:
-        data = {}
+        data: Dict[str, Any] = {}
         if amount is not None:
             data["amount"] = amount
         if reason is not None:
