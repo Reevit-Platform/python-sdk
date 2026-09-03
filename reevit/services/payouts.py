@@ -27,7 +27,7 @@ class PayoutsService:
         limit: int = 20,
         offset: int = 0,
     ) -> Dict[str, Any]:
-        params = {"limit": limit, "offset": offset}
+        params: Dict[str, Any] = {"limit": limit, "offset": offset}
         if status:
             params["status"] = status
         return self.client.request("GET", "/v1/payouts", params=params)

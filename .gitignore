@@ -19,3 +19,11 @@ wheels/
 .installed.cfg
 *.egg
 MANIFEST
+
+# Test and coverage artefacts
+.coverage
+.coverage.*
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+.venv-smoke/

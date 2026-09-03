@@ -26,6 +26,15 @@ classifiers = [
     "Typing :: Typed",
 ]
 
+# Test dependencies live here, not only in the CI workflow: tests/test_client.py
+# imports requests_mock, and a workflow that forgets it fails at collection.
+[project.optional-dependencies]
+test = [
+    "pytest>=7",
+    "pytest-cov",
+    "requests-mock>=1.11",
+]
+
 [project.urls]
 Homepage = "https://github.com/Reevit-Platform/python-sdk"
 Documentation = "https://docs.reevit.io"
