@@ -3,4 +3,4 @@
 # client.py for the X-Reevit-Client-Version header. Keep this file
 # free of imports so it stays loadable in build environments where
 # runtime dependencies are not installed.
-__version__ = "0.10.1"
+__version__ = "0.11.0"
