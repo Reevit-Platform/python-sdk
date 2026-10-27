@@ -4,7 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "reevit"
-description = "Reevit Python SDK"
+description = "Reevit Python SDK — Unified payment orchestration for Africa (Paystack, Hubtel, Flutterwave, M-Pesa, Moolre, Monnify, PawaPay, Stripe)"
+keywords = ["reevit", "payment-orchestration", "payments", "africa", "ghana", "nigeria", "kenya", "mobile-money", "paystack", "hubtel", "flutterwave", "mpesa", "moolre", "monnify", "pawapay", "stripe"]
 readme = { file = "README.md", content-type = "text/markdown" }
 license = { text = "MIT" }
 authors = [{ name = "Reevit" }]
@@ -36,8 +37,10 @@ test = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/Reevit-Platform/python-sdk"
+Homepage = "https://reevit.io"
 Documentation = "https://docs.reevit.io"
+Repository = "https://github.com/Reevit-Platform/python-sdk"
+Issues = "https://github.com/Reevit-Platform/python-sdk/issues"
 
 [tool.setuptools.dynamic]
 version = { attr = "reevit._version.__version__" }
